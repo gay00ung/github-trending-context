@@ -18,7 +18,7 @@
   <img src="docs/media/demo.gif" alt="On GitHub Trending, the Trending Context row expands to show a daily star chart, a Hacker News discussion, and GitHub releases." width="920">
 </p>
 
-The demo was recorded on GitHub Trending using a locally collected snapshot. [View the expanded panel as a still image](docs/media/expanded.png).
+The demo uses fictional repository names and source links in the GitHub Trending interface. [View the expanded panel as a still image](docs/media/expanded.png).
 
 ## What you see
 
