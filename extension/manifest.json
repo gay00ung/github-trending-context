@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Trending Context",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "See daily stars on public GitHub repositories and related activity in GitHub Trending.",
   "icons": {
     "16": "icons/icon-16.png",

@@ -6,6 +6,7 @@ require("../extension/repository.js");
 
 const {
   trendingPeriod, indexRepositories, validSnapshot, createSnapshotLoader, isStale, analyzeRepositoryStars,
+  createRepositoryLoader, repositoryAnalysisThrough,
 } = globalThis.TrendingContext;
 const now = Date.parse("2026-11-12T03:00:00Z");
 const payload = {
@@ -110,16 +111,62 @@ test("repository star analysis matches the collector cutoff, baseline, and missi
   const weeks = [
     { week: Date.parse("2026-11-08") / 1000, days: [24, 860, 0, null, 999, 0, 0] },
     { week: Date.parse("2026-11-01") / 1000, days: Array(7).fill(24) },
+    { week: Date.parse("2026-10-25") / 1000, days: [24, 24, 24, null, 24, 24, 24] },
   ];
-  const report = analyzeRepositoryStars(weeks, "2026-10-01T12:00:00Z", now);
+  const report = analyzeRepositoryStars(weeks, now, true);
   assert.equal(report.analysisThrough, "2026-11-10");
   assert.equal(report.dailyStars.length, 14);
   assert.equal(report.dailyStars.at(-1).stars, 0);
   assert.equal(report.dailyStars[0].stars, null);
   assert.deepEqual(report.spike, { status: "found", date: "2026-11-09", stars: 860, baseline: 24 });
 
-  const newRepo = analyzeRepositoryStars(weeks, "2026-11-09T12:00:00Z", now);
+  const partial = { ...weeks[0], days: [0, 860, 0, null, 999, 0, 0] };
+  const newRepo = analyzeRepositoryStars([partial], now, false);
   assert.deepEqual(newRepo.dailyStars.map(day => day.stars), [860, 0]);
   assert.equal(newRepo.spike.status, "insufficient");
-  assert.throws(() => analyzeRepositoryStars([weeks[0], weeks[0]], "2026-10-01T12:00:00Z", now));
+  assert.throws(() => analyzeRepositoryStars([weeks[0], weeks[0]], now, false));
+});
+
+test("repository history is reused across worker restarts until the UTC analysis date changes", async () => {
+  let cached;
+  let clock = now;
+  let calls = 0;
+  const settings = {
+    readCache: async () => structuredClone(cached),
+    saveCache: async next => { cached = structuredClone(next); },
+    now: () => clock,
+    fetchStars: async () => {
+      calls++;
+      return { analysisThrough: repositoryAnalysisThrough(clock), dailyStars: [], collectedAt: clock };
+    },
+  };
+  const load = createRepositoryLoader(settings);
+  const results = await Promise.all([load("owner/repo"), load("owner/repo")]);
+  assert.equal(calls, 1);
+  assert.deepEqual(results[0], results[1]);
+  const restarted = createRepositoryLoader(settings);
+  assert.deepEqual(await restarted("owner/repo"), results[0]);
+  assert.equal(calls, 1);
+  clock += 86_400_000;
+  assert.equal((await restarted("owner/repo")).repository.analysisThrough, "2026-11-11");
+  assert.equal(calls, 2);
+});
+
+test("rate limiting preserves the older chart and stops retries across workers", async () => {
+  const previous = { analysisThrough: "2026-11-09", dailyStars: [], collectedAt: now - 86_400_000 };
+  let cached = { reports: { "owner/repo": previous } };
+  let calls = 0;
+  const settings = {
+    readCache: async () => structuredClone(cached),
+    saveCache: async next => { cached = structuredClone(next); },
+    now: () => now,
+    fetchStars: async () => {
+      calls++;
+      throw Object.assign(new Error("rate limited"), { retryAt: now + 3600_000 });
+    },
+  };
+  assert.deepEqual(await createRepositoryLoader(settings)("owner/repo"),
+    { repository: previous, stale: true, error: "rate_limited" });
+  assert.deepEqual(await createRepositoryLoader(settings)("other/repo"), { error: "rate_limited" });
+  assert.equal(calls, 1);
 });

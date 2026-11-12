@@ -30,7 +30,8 @@ def package(output, snapshot=None, demo=False, archive=None, *, snapshot_dir=Non
         manifest_path = output / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
         manifest.pop("host_permissions", None)
-        manifest.pop("permissions", None)
+        if demo:
+            manifest.pop("permissions", None)
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         mode = "demo" if demo else "local"
         config = json.dumps({"mode": mode})

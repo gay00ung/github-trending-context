@@ -57,6 +57,15 @@
     return chart;
   }
 
+  function appendHistory(body, dailyStars, spike) {
+    if (!dailyStars.length) return;
+    body.append(element("p", "trending-context-label", "Daily stars"));
+    body.append(historyChart(dailyStars, spike?.date));
+    const dates = element("div", "trending-context-dates");
+    dates.append(element("span", "", shortDate(dailyStars[0].date)), element("span", "", shortDate(dailyStars.at(-1).date)));
+    body.append(dates);
+  }
+
   function sourceSummary(sources) {
     return Object.entries(sourceNames).flatMap(([key, name]) => {
       const { status, items } = sources[key];
@@ -84,15 +93,10 @@
     const details = element("details", "trending-context");
     details.dataset.contextKey = key;
     const summary = element("summary");
-    const label = data.repository ? "Star analysis" : data.demo ? "Example data" : "Trending Context";
-    const comparison = (data.repository && spike?.status === "found" ? "Spike on " : "") + comparisonSummary(spike);
+    const label = data.demo ? "Example data" : "Trending Context";
     summary.append(element("span", "trending-context-demo", label));
-    summary.append(element("span", "", comparison));
-    if (data.repository) {
-      const total = numbers.format(entry.totalStars) + " total stars";
-      summary.append(element("span", "trending-context-muted", total));
-      summary.setAttribute("aria-label", [label, comparison, total].join(". "));
-    } else if (spike?.status === "found") {
+    summary.append(element("span", "", comparisonSummary(spike)));
+    if (spike?.status === "found") {
       summary.append(element("span", "trending-context-muted", sourceSummary(sources)));
     }
     if (data.stale || data.fallback) {
@@ -101,14 +105,8 @@
     details.append(summary);
 
     const body = element("div", "trending-context-body");
-    if (dailyStars.length) {
-      body.append(element("p", "trending-context-label", "Daily stars"));
-      body.append(historyChart(dailyStars, spike?.date));
-      const dates = element("div", "trending-context-dates");
-      dates.append(element("span", "", shortDate(dailyStars[0].date)), element("span", "", shortDate(dailyStars.at(-1).date)));
-      body.append(dates);
-    }
-    if (sources && spike?.status === "found") {
+    appendHistory(body, dailyStars, spike);
+    if (spike?.status === "found") {
       const list = element("ul", "trending-context-evidence");
       for (const key of Object.keys(sourceNames)) {
         list.append(...sources[key].items.map(item => evidenceLink(item, key)));
@@ -124,10 +122,6 @@
       const { analysisThrough, trendingFetchedAt } = data.snapshot;
       body.append(element("p", "trending-context-note",
         "Compared through " + analysisThrough + " · Collected " + timestamp.format(new Date(trendingFetchedAt))));
-    }
-    if (data.repository) {
-      body.append(element("p", "trending-context-note",
-        "Compared through " + entry.analysisThrough + " · Checked " + timestamp.format(entry.collectedAt)));
     }
     details.append(body);
     return details;
@@ -194,14 +188,73 @@
     return label?.textContent.trim() === "Public" ? name : null;
   }
 
+  function displayedStarCount(repo) {
+    const counters = document.querySelectorAll([
+      "#repo-stars-counter-star", "#repo-stars-counter-unstar",
+      '[data-testid="star-button"] [data-component="CounterLabel"]',
+      '[data-testid="unstar-button"] [data-component="CounterLabel"]',
+    ].join(","));
+    const links = [...document.querySelectorAll('a[href$="/stargazers"]')].filter(link =>
+      new URL(link.href).pathname.toLowerCase() === "/" + repo + "/stargazers");
+    for (const node of [...counters, ...links]) {
+      if (!node.getClientRects().length) continue;
+      for (const raw of [node.title, node.textContent]) {
+        const match = /^([\d,.\u00a0\u202f ]+\d|\d)([kmb]?)\s*(?:stars?)?$/i.exec(raw.trim());
+        if (match) return match[1] + match[2];
+      }
+    }
+    return "";
+  }
+
+  function createRepositoryView(name) {
+    const container = element("div", "trending-context-repository");
+    const details = element("details", "trending-context");
+    const summary = element("summary");
+    const comparison = element("span");
+    const total = element("span", "trending-context-muted");
+    comparison.hidden = total.hidden = true;
+    summary.append(element("span", "trending-context-demo", "Star analysis"), comparison, total);
+    const body = element("div", "trending-context-body");
+    body.setAttribute("aria-live", "polite");
+    details.append(summary, body);
+    container.append(details);
+    const view = { name, container, details, comparison, total, body };
+    details.addEventListener("toggle", () => {
+      if (details.open) loadRepository(view);
+    });
+    return view;
+  }
+
   async function loadRepository(view) {
+    if (view.pending) return;
+    view.pending = true;
+    if (!view.report) view.body.textContent = "Loading GitHub star history…";
+    let result;
     try {
-      const result = await chrome.runtime.sendMessage({ type: "trending-context:repository", repo: view.name });
-      view.result = result ?? { error: "unavailable" };
+      result = await chrome.runtime.sendMessage({ type: "trending-context:repository", repo: view.name });
     } catch {
-      view.result = { error: "unavailable" };
+      result = { error: "unavailable" };
     } finally {
-      schedule();
+      view.pending = false;
+    }
+
+    if (view !== repositoryView) return;
+    const report = result?.repository;
+    const message = result?.error === "rate_limited"
+      ? "GitHub API rate limit reached. Try again later."
+      : "GitHub star history is unavailable right now.";
+    view.report = report;
+    view.body.replaceChildren();
+    view.comparison.hidden = !report;
+    if (report) {
+      const prefix = report.spike.status === "found" ? "Spike on " : "";
+      view.comparison.textContent = prefix + comparisonSummary(report.spike);
+      appendHistory(view.body, report.dailyStars, report.spike);
+      view.body.append(element("p", "trending-context-note",
+        "Compared through " + report.analysisThrough + " · Checked " + timestamp.format(report.collectedAt)));
+    }
+    if (!report || result.stale) {
+      view.body.append(element("p", "trending-context-note", (report ? "Showing saved history. " : "") + message));
     }
   }
 
@@ -216,28 +269,13 @@
       repositoryView = undefined;
     }
     if (!anchor) return;
-    if (!repositoryView) {
-      const container = element("div", "trending-context-repository");
-      container.setAttribute("aria-live", "polite");
-      repositoryView = { name, container };
-      loadRepository(repositoryView);
-    }
-    const { container, result } = repositoryView;
+    repositoryView ??= createRepositoryView(name);
+    const { container, total } = repositoryView;
     if (container.parentElement !== anchor) anchor.prepend(container);
-
-    const state = result?.repository ? "ready" : result?.error ?? "loading";
-    if (container.dataset.state === state) return;
-    container.dataset.state = state;
-    if (result?.repository) {
-      container.replaceChildren(panel(result.repository, name, { repository: true }));
-      return;
-    }
-    const messages = {
-      loading: "Loading GitHub star history…",
-      unavailable: "GitHub star history is unavailable right now",
-      rate_limited: "GitHub API rate limit reached. Try again later.",
-    };
-    container.replaceChildren(notice("Star analysis · " + messages[state], name));
+    const count = displayedStarCount(name);
+    const label = count && count + " total stars";
+    if (total.textContent !== label) total.textContent = label;
+    total.hidden = !count;
   }
 
   function sync() {
