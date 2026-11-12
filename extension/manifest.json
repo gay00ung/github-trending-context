@@ -3,13 +3,12 @@
   "name": "Trending Context",
   "version": "0.1.0",
   "description": "See daily stars and related public activity inside GitHub Trending.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://gay00ung.github.io/*"],
+  "background": { "service_worker": "worker.js" },
   "content_scripts": [{
     "matches": ["https://github.com/trending*"],
     "js": ["context.js", "content.js"],
     "css": ["content.css"]
-  }],
-  "web_accessible_resources": [{
-    "resources": ["fixtures/demo.json"],
-    "matches": ["https://github.com/*"]
   }]
 }

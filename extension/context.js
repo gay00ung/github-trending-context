@@ -11,5 +11,9 @@
       && !url.searchParams.get("spoken_language_code");
   }
 
-  globalThis.TrendingContext = { repositoryName, isDailyTrending };
+  function indexRepositories(entries) {
+    return new Map(entries.map(entry => [repositoryName("/" + entry.fullName), entry]));
+  }
+
+  globalThis.TrendingContext = { repositoryName, isDailyTrending, indexRepositories };
 })();

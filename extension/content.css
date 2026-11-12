@@ -82,8 +82,15 @@
   list-style: none;
 }
 
-.trending-context-evidence li { display: flex; gap: 0.55rem; }
-.trending-context-evidence time { flex-shrink: 0; }
+.trending-context-evidence li {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.trending-context-evidence a {
+  overflow-wrap: anywhere;
+}
 
 .trending-context-sr-only {
   position: absolute;
@@ -91,4 +98,13 @@
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+
+.trending-context-note {
+  color: var(--fgColor-muted, var(--color-fg-muted, #59636e));
+  margin: 0.5rem 0 0;
+}
+
+.trending-context-notice {
+  color: var(--fgColor-muted, var(--color-fg-muted, #59636e));
 }
