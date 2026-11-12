@@ -19,6 +19,7 @@ def package(output, snapshot=None, demo=False, archive=None):
 
     ignore = None if demo else shutil.ignore_patterns("fixtures")
     shutil.copytree(ROOT / "extension", output, dirs_exist_ok=True, ignore=ignore)
+    shutil.copyfile(ROOT / "LICENSE", output / "LICENSE")
     if demo or snapshot:
         manifest_path = output / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
