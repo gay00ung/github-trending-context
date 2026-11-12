@@ -15,10 +15,10 @@
 <p align="center"><a href="#try-it-locally">Try it locally</a> · <a href="#what-the-data-means">Methodology</a> · <a href="#development">Development</a></p>
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="On GitHub Trending, the Trending Context row expands to show a daily star chart, a Hacker News discussion, and GitHub releases." width="920">
+  <img src="docs/media/demo.gif" alt="The Trending Context panel expands on GitHub Trending, then the fictional repository opens and the Star analysis panel reveals its daily star chart." width="920">
 </p>
 
-The demo uses fictional repository names and source links in the GitHub Trending interface. [View the expanded panel as a still image](docs/media/expanded.png).
+The demo uses fictional repository names and source links. It follows a repository from GitHub Trending to its home page and opens **Star analysis**. [View the expanded Trending panel as a still image](docs/media/expanded.png).
 
 ## What you see
 
