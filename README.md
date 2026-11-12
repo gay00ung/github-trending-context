@@ -29,6 +29,10 @@ The demo uses fictional repository names and source links. It follows a reposito
 
 ## Try it locally
 
+To install in Chrome, download and unzip the Chrome extension ZIP from [GitHub Releases](https://github.com/gay00ung/github-trending-context/releases/latest). Open `chrome://extensions`, turn on **Developer mode**, then choose **Load unpacked** and select the unzipped folder. The extension reads the daily Trending snapshots from GitHub Pages.
+
+### Build from source
+
 You need Chrome and Python 3.12 or later. The collector uses the Python standard library and public endpoints.
 
 ```sh
