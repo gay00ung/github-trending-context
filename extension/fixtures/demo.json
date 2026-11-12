@@ -1,0 +1,235 @@
+[
+  {
+    "dailyStars": [
+      {
+        "date": "2026-11-02",
+        "stars": 14
+      },
+      {
+        "date": "2026-11-03",
+        "stars": 18
+      },
+      {
+        "date": "2026-11-04",
+        "stars": 24
+      },
+      {
+        "date": "2026-11-05",
+        "stars": 17
+      },
+      {
+        "date": "2026-11-06",
+        "stars": 30
+      },
+      {
+        "date": "2026-11-07",
+        "stars": 22
+      },
+      {
+        "date": "2026-11-08",
+        "stars": 25
+      },
+      {
+        "date": "2026-11-09",
+        "stars": 860
+      },
+      {
+        "date": "2026-11-10",
+        "stars": 241
+      },
+      {
+        "date": "2026-11-11",
+        "stars": 123
+      },
+      {
+        "date": "2026-11-12",
+        "stars": 91
+      },
+      {
+        "date": "2026-11-13",
+        "stars": 70
+      },
+      {
+        "date": "2026-11-14",
+        "stars": 41
+      },
+      {
+        "date": "2026-11-15",
+        "stars": 36
+      }
+    ],
+    "spike": {
+      "date": "2026-11-09",
+      "stars": 860,
+      "baseline": 24
+    },
+    "sources": {
+      "hn": {
+        "status": "found",
+        "items": [
+          {
+            "date": "2026-11-09",
+            "title": "Show HN discussion (example)",
+            "url": "https://example.com/relayboard/discussion"
+          }
+        ]
+      },
+      "releases": {
+        "status": "found",
+        "items": [
+          {
+            "date": "2026-11-09",
+            "title": "GitHub Releases (example)",
+            "url": "https://example.com/relayboard/releases"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "dailyStars": [
+      {
+        "date": "2026-11-02",
+        "stars": 5
+      },
+      {
+        "date": "2026-11-03",
+        "stars": 6
+      },
+      {
+        "date": "2026-11-04",
+        "stars": 8
+      },
+      {
+        "date": "2026-11-05",
+        "stars": 6
+      },
+      {
+        "date": "2026-11-06",
+        "stars": 10
+      },
+      {
+        "date": "2026-11-07",
+        "stars": 7
+      },
+      {
+        "date": "2026-11-08",
+        "stars": 8
+      },
+      {
+        "date": "2026-11-09",
+        "stars": 410
+      },
+      {
+        "date": "2026-11-10",
+        "stars": 80
+      },
+      {
+        "date": "2026-11-11",
+        "stars": 41
+      },
+      {
+        "date": "2026-11-12",
+        "stars": 30
+      },
+      {
+        "date": "2026-11-13",
+        "stars": 23
+      },
+      {
+        "date": "2026-11-14",
+        "stars": 14
+      },
+      {
+        "date": "2026-11-15",
+        "stars": 12
+      }
+    ],
+    "spike": {
+      "date": "2026-11-09",
+      "stars": 410,
+      "baseline": 8
+    },
+    "sources": {
+      "hn": {
+        "status": "none_found",
+        "items": []
+      },
+      "releases": {
+        "status": "none_found",
+        "items": []
+      }
+    }
+  },
+  {
+    "dailyStars": [
+      {
+        "date": "2026-11-02",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-03",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-04",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-05",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-06",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-07",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-08",
+        "stars": 1
+      },
+      {
+        "date": "2026-11-09",
+        "stars": 34
+      },
+      {
+        "date": "2026-11-10",
+        "stars": 10
+      },
+      {
+        "date": "2026-11-11",
+        "stars": 5
+      },
+      {
+        "date": "2026-11-12",
+        "stars": 4
+      },
+      {
+        "date": "2026-11-13",
+        "stars": 3
+      },
+      {
+        "date": "2026-11-14",
+        "stars": 2
+      },
+      {
+        "date": "2026-11-15",
+        "stars": 1
+      }
+    ],
+    "spike": null,
+    "sources": {
+      "hn": {
+        "status": "none_found",
+        "items": []
+      },
+      "releases": {
+        "status": "none_found",
+        "items": []
+      }
+    }
+  }
+]

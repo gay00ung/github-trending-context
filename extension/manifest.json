@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Trending Context",
+  "version": "0.1.0",
+  "description": "See daily stars and related public activity inside GitHub Trending.",
+  "content_scripts": [{
+    "matches": ["https://github.com/trending*"],
+    "js": ["context.js", "content.js"],
+    "css": ["content.css"]
+  }],
+  "web_accessible_resources": [{
+    "resources": ["fixtures/demo.json"],
+    "matches": ["https://github.com/*"]
+  }]
+}
