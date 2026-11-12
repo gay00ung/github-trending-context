@@ -28,6 +28,8 @@ jobs:
       - name: Test and check the Chrome extension
         run: |
           node --test tests/extension.test.cjs
-          for file in extension/*.js; do node --check "$file" || exit 1; done
+          for file in extension/*.js web/*.js; do node --check "$file" || exit 1; done
       - name: Package the offline demo
         run: python3 scripts/package_extension.py --demo --output build/extension-demo
+      - name: Stage the Pages demo
+        run: python3 scripts/stage_pages.py --output build/site

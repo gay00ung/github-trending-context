@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22863a"></a>
 </p>
 
-<p align="center"><a href="#try-it-locally">Try it locally</a> · <a href="#what-the-data-means">Methodology</a> · <a href="#development">Development</a></p>
+<p align="center"><a href="https://gay00ung.github.io/github-trending-context/"><strong>Try the live web demo</strong></a> · <a href="#try-it-locally">Install in Chrome</a> · <a href="#what-the-data-means">Methodology</a></p>
 
 <p align="center">
   <img src="docs/media/demo.gif" alt="The Trending Context panel expands on GitHub Trending, then the fictional repository opens and the Star analysis panel reveals its daily star chart." width="920">
@@ -28,6 +28,8 @@ The demo uses fictional repository names and source links. It follows a reposito
 - A collection timestamp and separate states for missing history, unavailable sources, and snapshots that are over 36 hours old.
 
 ## Try it locally
+
+The [live web demo](https://gay00ung.github.io/github-trending-context/) lets you switch between all three Trending periods and explore the same charts and related links in any browser.
 
 To install in Chrome, download and unzip the Chrome extension ZIP from [GitHub Releases](https://github.com/gay00ung/github-trending-context/releases/latest). Open `chrome://extensions`, turn on **Developer mode**, then choose **Load unpacked** and select the unzipped folder. The extension reads the daily Trending snapshots from GitHub Pages.
 
@@ -76,7 +78,7 @@ The panel reports what was observed and when. A matching release or discussion c
 
 The source extension reads the selected period's snapshot from the project's GitHub Pages site when Pages is enabled. The **Refresh snapshot** workflow collects all three periods daily and supports manual runs. A failed collection leaves the last successful deployment available. The extension requests the same JSON per period for everyone, caches the last valid copy locally, and keeps browsing activity on the device.
 
-For maintainers, enable **Settings → Pages → Source → GitHub Actions** in the public repository, then run **Refresh snapshot** from the Actions tab. The workflow publishes the feed and builds an unpacked extension artifact. The local install above works before Pages is enabled.
+For maintainers, enable **Settings → Pages → Source → GitHub Actions** in the public repository, then run **Refresh snapshot** from the Actions tab. The workflow publishes the demo and all three feeds and builds an unpacked extension artifact. To preview the site locally, run `python3 scripts/stage_pages.py --output build/site` after collecting the snapshots, then run `python3 -m http.server --directory build/site`.
 
 ## Development
 

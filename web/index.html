@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitHub Trending Star History | Trending Context</title>
+  <meta name="description" content="Explore GitHub Trending star history for today, this week, and this month. See daily star counts, spikes, and related releases or Hacker News discussions.">
+  <meta name="theme-color" content="#f7f8f5">
+  <link rel="canonical" href="https://gay00ung.github.io/github-trending-context/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="GitHub Trending Star History | Trending Context">
+  <meta property="og:description" content="See when stars jumped and what happened around that date. Try the live GitHub Trending demo in your browser.">
+  <meta property="og:url" content="https://gay00ung.github.io/github-trending-context/">
+  <meta property="og:image" content="https://gay00ung.github.io/github-trending-context/assets/preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="./assets/icon.png">
+  <link rel="stylesheet" href="./site.css">
+  <script defer src="./assets/context.js"></script>
+  <script defer src="./assets/snapshot.js"></script>
+  <script defer src="./site.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell masthead">
+      <a href="./" class="wordmark"><img src="./assets/icon.png" width="32" height="32" alt=""> Trending Context</a>
+      <a class="install-link" href="https://github.com/gay00ung/github-trending-context/releases/latest">Get the Chrome extension <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <h1 id="page-title">GitHub Trending<br>star history<span>.</span></h1>
+      <p>See when a repository gained stars and find releases or discussions from around that date.</p>
+    </section>
+
+    <section aria-label="Trending star explorer">
+      <div class="toolbar">
+        <div class="periods" role="group" aria-label="Trending period">
+          <button type="button" data-period="daily" aria-pressed="true">Today</button>
+          <button type="button" data-period="weekly" aria-pressed="false">This week</button>
+          <button type="button" data-period="monthly" aria-pressed="false">This month</button>
+        </div>
+        <p id="snapshot-time" class="snapshot-time"></p>
+      </div>
+      <div id="loading" class="loading">
+        <p id="load-message" role="status">Loading GitHub Trending…</p>
+        <button id="retry" type="button" hidden>Try again</button>
+      </div>
+      <noscript><p>Enable JavaScript to explore the charts, or open the <a href="./latest.json">Today snapshot</a>.</p></noscript>
+
+      <div id="workspace" class="workspace" hidden>
+        <aside class="ranking" aria-labelledby="ranking-title">
+          <h2 id="ranking-title">Trending repositories</h2>
+          <ol id="repository-list"></ol>
+          <div class="repository-picker">
+            <label for="repository-select">Repository</label>
+            <select id="repository-select"></select>
+          </div>
+        </aside>
+        <article id="repository-detail" class="detail" aria-label="Repository star history"></article>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>GitHub Trending snapshots refresh daily. Nearby releases and posts provide context for the timing of a spike.</p>
+      <nav aria-label="Project">
+        <a href="https://github.com/gay00ung/github-trending-context#what-the-data-means">Methodology</a>
+        <a href="https://github.com/gay00ung/github-trending-context">Source on GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </footer>
+  </main>
+</body>
+</html>
