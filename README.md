@@ -43,7 +43,15 @@ python3 scripts/package_extension.py \
 2. Choose **Load unpacked** and select `build/trending-context-local`.
 3. Open [GitHub Trending](https://github.com/trending) with the language filters cleared and choose **Today**, **This week**, or **This month**. Select a **Trending Context** summary to see its evidence.
 
-The local build reads the snapshots bundled with it. To refresh it, run the commands again with a fresh output directory and load that directory in Chrome. To explore the UI without fetching data, run `python3 scripts/package_extension.py --demo --output build/trending-context-demo` and load that build instead. If GitHub rate limits collection across all three periods, set the collector's `GITHUB_TOKEN` environment variable and retry.
+To refresh **Today**, **This week**, and **This month** in the installed local build, run:
+
+```sh
+python3 scripts/refresh_local.py build/trending-context-local
+```
+
+On macOS, add `--install-macos` to register a daily refresh at **09:17 in your Mac's time zone**. The job runs while you're signed in, even when Chrome is closed. It checks on sign-in and hourly for a missed or failed run. Chrome reads the new snapshots when you open or return to Trending, and every five minutes while the tab is visible. If collection fails, the last successful snapshots stay in place. The job's log is at `build/local-refresh/refresh.log`.
+
+For authenticated collection, the refresh command uses `GITHUB_TOKEN` or an existing `gh auth login` for github.com. To try the interface without collecting data, run `python3 scripts/package_extension.py --demo --output build/trending-context-demo` and load that build.
 
 ## What the data means
 

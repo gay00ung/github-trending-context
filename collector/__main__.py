@@ -101,6 +101,8 @@ def main(argv=None):
     base = Path("build/site")
     try:
         snapshots = {period: collect(sources, args.limit, period=period) for period in periods}
+        if sources.github_limited:
+            raise SourceError("GitHub API limit reached; keeping the previous snapshots")
         for period, data in snapshots.items():
             filename = SNAPSHOT_FILES[period]
             if args.period == "all":

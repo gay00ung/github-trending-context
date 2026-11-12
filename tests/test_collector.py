@@ -20,6 +20,8 @@ WEEKS = [
 
 
 class FakeSources:
+    github_limited = False
+
     def trending(self, period="daily"):
         return ["Owner/Repo", "Owner/Other"]
 
@@ -114,3 +116,22 @@ class CollectorTests(unittest.TestCase):
                     with contextlib.redirect_stderr(io.StringIO()):
                         self.assertEqual(main(["--output", str(output)]), 1)
             self.assertEqual(output.read_text(), "previous good snapshot")
+
+    def test_rate_limit_keeps_all_previous_snapshots_after_partial_success(self):
+        with tempfile.TemporaryDirectory() as folder:
+            outputs = [Path(folder) / filename for filename in ("latest.json", "weekly.json", "monthly.json")]
+            for output in outputs:
+                output.write_text("previous good snapshot")
+            sources = FakeSources()
+
+            def rate_limited_history(repo):
+                if repo == "Owner/Other":
+                    sources.github_limited = True
+                return FakeSources.history(sources, repo)
+
+            with patch("collector.__main__.Sources", return_value=sources):
+                with patch.object(sources, "history", side_effect=rate_limited_history):
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        self.assertEqual(main(["--period", "all", "--output", folder]), 1)
+            for output in outputs:
+                self.assertEqual(output.read_text(), "previous good snapshot")

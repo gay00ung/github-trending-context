@@ -28,7 +28,7 @@ async function readContext(period) {
     return { demo: await getJson(chrome.runtime.getURL("fixtures/demo.json")) };
   }
   const result = mode === "local"
-    ? { snapshot: await getJson(chrome.runtime.getURL(snapshotFiles[period])) }
+    ? { snapshot: await getJson(chrome.runtime.getURL(snapshotFiles[period]), { cache: "no-store" }) }
     : await loadHosted[period]();
   if (!validSnapshot(result.snapshot, period)) return { unavailable: true };
   return { ...result, stale: isStale(result.snapshot) };

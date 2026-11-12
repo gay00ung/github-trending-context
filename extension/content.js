@@ -6,6 +6,7 @@
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
   });
   const sourceNames = { hn: "Hacker News", releases: "Releases" };
+  const refreshInterval = 5 * 60 * 1000;
   const dataByPeriod = new Map();
   const pending = new Set();
   let renderedPeriod;
@@ -145,15 +146,36 @@
   function insert(row, key, render) {
     const current = row.querySelector(selector);
     if (current?.dataset.contextKey === key) return;
-    current?.remove();
+    const next = render();
+    if (next.tagName === "DETAILS" && current?.open) next.open = true;
+    if (current) {
+      current.replaceWith(next);
+      return;
+    }
     const anchor = row.querySelector(":scope > p:not(.trending-context)") ?? row.querySelector("h2");
-    anchor.after(render());
+    anchor.after(next);
+  }
+
+  async function loadPeriod(period) {
+    if (pending.has(period)) return;
+    pending.add(period);
+    try {
+      const result = await chrome.runtime.sendMessage({ type: "trending-context:snapshot", period });
+      if (result?.snapshot || result?.demo) dataByPeriod.set(period, result);
+    } catch {
+      // Keep the last snapshot when a refresh fails.
+    } finally {
+      if (!dataByPeriod.has(period)) dataByPeriod.set(period, { unavailable: true });
+      pending.delete(period);
+      schedule();
+    }
   }
 
   function sync() {
     frame = undefined;
     const period = trendingPeriod(new URL(location.href));
-    if (renderedPeriod !== period) {
+    const periodChanged = renderedPeriod !== period;
+    if (periodChanged) {
       document.querySelectorAll(selector).forEach(node => node.remove());
       renderedPeriod = period;
     }
@@ -162,16 +184,8 @@
     const rows = rowsInView();
     if (!rows.length) return;
     const data = dataByPeriod.get(period);
-    if (!data) {
-      if (!pending.has(period)) {
-        pending.add(period);
-        chrome.runtime.sendMessage({ type: "trending-context:snapshot", period })
-          .then(result => { dataByPeriod.set(period, result ?? { unavailable: true }); })
-          .catch(() => { dataByPeriod.set(period, { unavailable: true }); })
-          .finally(() => { pending.delete(period); schedule(); });
-      }
-      return;
-    }
+    if (periodChanged || !data) loadPeriod(period);
+    if (!data) return;
 
     const allowedRows = new Set(rows.map(({ row }) => row));
     for (const panel of document.querySelectorAll(selector)) {
@@ -189,7 +203,8 @@
         return;
       }
       const entry = data.demo ? data.demo[index] : entries.get(name);
-      const key = period + ":" + name + (data.demo ? ":demo:" + index : ":" + data.snapshot.generatedAt);
+      const revision = data.demo ? "demo:" + index : [data.snapshot.generatedAt, data.stale, data.fallback].join(":");
+      const key = period + ":" + name + ":" + revision;
       if (entry) {
         insert(row, key, () => panel(entry, key, data));
       } else if (data.demo) {
@@ -205,8 +220,16 @@
     if (frame === undefined) frame = requestAnimationFrame(sync);
   }
 
+  function refreshVisiblePeriod() {
+    if (document.hidden) return;
+    const period = trendingPeriod(new URL(location.href));
+    if (period && rowsInView().length) loadPeriod(period);
+  }
+
   new MutationObserver(schedule).observe(document.body, { subtree: true, childList: true });
   addEventListener("popstate", schedule);
   document.addEventListener("turbo:load", schedule);
+  document.addEventListener("visibilitychange", refreshVisiblePeriod);
+  setInterval(refreshVisiblePeriod, refreshInterval);
   schedule();
 })();
