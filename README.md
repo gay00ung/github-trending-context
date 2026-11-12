@@ -23,6 +23,7 @@ The demo uses fictional repository names and source links in the GitHub Trending
 ## What you see
 
 - A summary below each repository description in the top 10 for Today, This week, or This month with all languages selected. GitHub controls the list and its order.
+- A **Star analysis** panel on the home page of any public GitHub repository. It uses GitHub's public API to show total stars, up to 14 days of daily counts, and the latest spike that meets the same rule as Trending. This works independently of the daily Trending snapshots.
 - A 14-day star chart with the most recent comparable spike highlighted, plus links to matching Hacker News posts and releases.
 - A collection timestamp and separate states for missing history, unavailable sources, and snapshots that are over 36 hours old.
 
@@ -42,6 +43,7 @@ python3 scripts/package_extension.py \
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Choose **Load unpacked** and select `build/trending-context-local`.
 3. Open [GitHub Trending](https://github.com/trending) with the language filters cleared and choose **Today**, **This week**, or **This month**. Select a **Trending Context** summary to see its evidence.
+4. Open a public repository's home page to see **Star analysis** above its code. The panel queries GitHub directly with its unauthenticated API. GitHub's public API limits apply.
 
 To refresh **Today**, **This week**, and **This month** in the installed local build, run:
 

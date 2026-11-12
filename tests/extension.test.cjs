@@ -2,8 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 require("../extension/context.js");
 require("../extension/snapshot.js");
+require("../extension/repository.js");
 
-const { trendingPeriod, indexRepositories, validSnapshot, createSnapshotLoader, isStale } = globalThis.TrendingContext;
+const {
+  trendingPeriod, indexRepositories, validSnapshot, createSnapshotLoader, isStale, analyzeRepositoryStars,
+} = globalThis.TrendingContext;
 const now = Date.parse("2026-11-12T03:00:00Z");
 const payload = {
   schemaVersion: 1,
@@ -101,4 +104,22 @@ test("malformed responses and network errors preserve the last valid cache", asy
   assert.deepEqual(await cold(), { unavailable: true });
   assert.equal(isStale(payload, now), false);
   assert.equal(isStale(payload, now + 37 * 60 * 60 * 1000), true);
+});
+
+test("repository star analysis matches the collector cutoff, baseline, and missing data", () => {
+  const weeks = [
+    { week: Date.parse("2026-11-08") / 1000, days: [24, 860, 0, null, 999, 0, 0] },
+    { week: Date.parse("2026-11-01") / 1000, days: Array(7).fill(24) },
+  ];
+  const report = analyzeRepositoryStars(weeks, "2026-10-01T12:00:00Z", now);
+  assert.equal(report.analysisThrough, "2026-11-10");
+  assert.equal(report.dailyStars.length, 14);
+  assert.equal(report.dailyStars.at(-1).stars, 0);
+  assert.equal(report.dailyStars[0].stars, null);
+  assert.deepEqual(report.spike, { status: "found", date: "2026-11-09", stars: 860, baseline: 24 });
+
+  const newRepo = analyzeRepositoryStars(weeks, "2026-11-09T12:00:00Z", now);
+  assert.deepEqual(newRepo.dailyStars.map(day => day.stars), [860, 0]);
+  assert.equal(newRepo.spike.status, "insufficient");
+  assert.throws(() => analyzeRepositoryStars([weeks[0], weeks[0]], "2026-10-01T12:00:00Z", now));
 });

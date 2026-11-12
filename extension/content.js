@@ -1,5 +1,6 @@
 (() => {
   const { repositoryName, trendingPeriod, indexRepositories } = globalThis.TrendingContext;
+  const { mode } = globalThis.TrendingContextConfig;
   const selector = ".trending-context";
   const numbers = new Intl.NumberFormat("en");
   const timestamp = new Intl.DateTimeFormat("en", {
@@ -10,6 +11,7 @@
   const dataByPeriod = new Map();
   const pending = new Set();
   let renderedPeriod;
+  let repositoryView;
   let frame;
 
   function element(tag, className, text) {
@@ -82,9 +84,15 @@
     const details = element("details", "trending-context");
     details.dataset.contextKey = key;
     const summary = element("summary");
-    summary.append(element("span", "trending-context-demo", data.demo ? "Example data" : "Trending Context"));
-    summary.append(element("span", "", comparisonSummary(spike)));
-    if (spike?.status === "found") {
+    const label = data.repository ? "Star analysis" : data.demo ? "Example data" : "Trending Context";
+    const comparison = (data.repository && spike?.status === "found" ? "Spike on " : "") + comparisonSummary(spike);
+    summary.append(element("span", "trending-context-demo", label));
+    summary.append(element("span", "", comparison));
+    if (data.repository) {
+      const total = numbers.format(entry.totalStars) + " total stars";
+      summary.append(element("span", "trending-context-muted", total));
+      summary.setAttribute("aria-label", [label, comparison, total].join(". "));
+    } else if (spike?.status === "found") {
       summary.append(element("span", "trending-context-muted", sourceSummary(sources)));
     }
     if (data.stale || data.fallback) {
@@ -100,7 +108,7 @@
       dates.append(element("span", "", shortDate(dailyStars[0].date)), element("span", "", shortDate(dailyStars.at(-1).date)));
       body.append(dates);
     }
-    if (spike?.status === "found") {
+    if (sources && spike?.status === "found") {
       const list = element("ul", "trending-context-evidence");
       for (const key of Object.keys(sourceNames)) {
         list.append(...sources[key].items.map(item => evidenceLink(item, key)));
@@ -116,6 +124,10 @@
       const { analysisThrough, trendingFetchedAt } = data.snapshot;
       body.append(element("p", "trending-context-note",
         "Compared through " + analysisThrough + " · Collected " + timestamp.format(new Date(trendingFetchedAt))));
+    }
+    if (data.repository) {
+      body.append(element("p", "trending-context-note",
+        "Compared through " + entry.analysisThrough + " · Checked " + timestamp.format(entry.collectedAt)));
     }
     details.append(body);
     return details;
@@ -171,14 +183,73 @@
     }
   }
 
+  function publicRepository(url) {
+    const name = repositoryName(url.pathname);
+    if (!name || mode === "demo") return null;
+    const meta = key => document.head.querySelector('meta[name="octolytics-dimension-repository_' + key + '"]')?.content;
+    if (repositoryName("/" + meta("nwo")) !== name) return null;
+    const visibility = meta("public");
+    if (visibility !== undefined) return visibility === "true" ? name : null;
+    const label = document.querySelector('[data-testid="repo-visibility-label"]');
+    return label?.textContent.trim() === "Public" ? name : null;
+  }
+
+  async function loadRepository(view) {
+    try {
+      const result = await chrome.runtime.sendMessage({ type: "trending-context:repository", repo: view.name });
+      view.result = result ?? { error: "unavailable" };
+    } catch {
+      view.result = { error: "unavailable" };
+    } finally {
+      schedule();
+    }
+  }
+
+  function syncRepository(url) {
+    const name = publicRepository(url);
+    const anchor = name && (
+      document.querySelector("main#js-repo-pjax-container #repo-content-pjax-container")
+      ?? document.querySelector("main#ui-service-main-content")
+    );
+    if (!anchor || repositoryView?.name !== name) {
+      repositoryView?.container.remove();
+      repositoryView = undefined;
+    }
+    if (!anchor) return;
+    if (!repositoryView) {
+      const container = element("div", "trending-context-repository");
+      container.setAttribute("aria-live", "polite");
+      repositoryView = { name, container };
+      loadRepository(repositoryView);
+    }
+    const { container, result } = repositoryView;
+    if (container.parentElement !== anchor) anchor.prepend(container);
+
+    const state = result?.repository ? "ready" : result?.error ?? "loading";
+    if (container.dataset.state === state) return;
+    container.dataset.state = state;
+    if (result?.repository) {
+      container.replaceChildren(panel(result.repository, name, { repository: true }));
+      return;
+    }
+    const messages = {
+      loading: "Loading GitHub star history…",
+      unavailable: "GitHub star history is unavailable right now",
+      rate_limited: "GitHub API rate limit reached. Try again later.",
+    };
+    container.replaceChildren(notice("Star analysis · " + messages[state], name));
+  }
+
   function sync() {
     frame = undefined;
-    const period = trendingPeriod(new URL(location.href));
+    const url = new URL(location.href);
+    const period = trendingPeriod(url);
     const periodChanged = renderedPeriod !== period;
     if (periodChanged) {
       document.querySelectorAll(selector).forEach(node => node.remove());
       renderedPeriod = period;
     }
+    syncRepository(url);
     if (!period) return;
 
     const rows = rowsInView();
@@ -226,7 +297,7 @@
     if (period && rowsInView().length) loadPeriod(period);
   }
 
-  new MutationObserver(schedule).observe(document.body, { subtree: true, childList: true });
+  new MutationObserver(schedule).observe(document.documentElement, { subtree: true, childList: true });
   addEventListener("popstate", schedule);
   document.addEventListener("turbo:load", schedule);
   document.addEventListener("visibilitychange", refreshVisiblePeriod);

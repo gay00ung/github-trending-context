@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Trending Context",
-  "version": "0.3.0",
-  "description": "See daily stars and related public activity inside GitHub Trending.",
+  "version": "0.4.0",
+  "description": "See daily stars on public GitHub repositories and related activity in GitHub Trending.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -21,8 +21,8 @@
   "host_permissions": ["https://gay00ung.github.io/*"],
   "background": { "service_worker": "worker.js" },
   "content_scripts": [{
-    "matches": ["https://github.com/trending*"],
-    "js": ["context.js", "content.js"],
+    "matches": ["https://github.com/*"],
+    "js": ["config.js", "context.js", "content.js"],
     "css": ["content.css"]
   }]
 }
