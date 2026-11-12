@@ -1,13 +1,14 @@
 (() => {
-  const { repositoryName, isDailyTrending, indexRepositories } = globalThis.TrendingContext;
+  const { repositoryName, trendingPeriod, indexRepositories } = globalThis.TrendingContext;
   const selector = ".trending-context";
   const numbers = new Intl.NumberFormat("en");
   const timestamp = new Intl.DateTimeFormat("en", {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
   });
   const sourceNames = { hn: "Hacker News", releases: "Releases" };
-  let data;
-  let pending;
+  const dataByPeriod = new Map();
+  const pending = new Set();
+  let renderedPeriod;
   let frame;
 
   function element(tag, className, text) {
@@ -74,7 +75,7 @@
     }
   }
 
-  function panel(entry, key) {
+  function panel(entry, key, data) {
     const { dailyStars, sources } = entry;
     const spike = data.demo && entry.spike ? { status: "found", ...entry.spike } : entry.spike;
     const details = element("details", "trending-context");
@@ -151,18 +152,24 @@
 
   function sync() {
     frame = undefined;
-    if (!isDailyTrending(new URL(location.href))) {
+    const period = trendingPeriod(new URL(location.href));
+    if (renderedPeriod !== period) {
       document.querySelectorAll(selector).forEach(node => node.remove());
-      return;
+      renderedPeriod = period;
     }
+    if (!period) return;
 
     const rows = rowsInView();
     if (!rows.length) return;
+    const data = dataByPeriod.get(period);
     if (!data) {
-      pending ??= chrome.runtime.sendMessage({ type: "trending-context:snapshot" })
-        .then(result => { data = result ?? { unavailable: true }; })
-        .catch(() => { data = { unavailable: true }; })
-        .finally(() => { pending = undefined; schedule(); });
+      if (!pending.has(period)) {
+        pending.add(period);
+        chrome.runtime.sendMessage({ type: "trending-context:snapshot", period })
+          .then(result => { dataByPeriod.set(period, result ?? { unavailable: true }); })
+          .catch(() => { dataByPeriod.set(period, { unavailable: true }); })
+          .finally(() => { pending.delete(period); schedule(); });
+      }
       return;
     }
 
@@ -182,9 +189,9 @@
         return;
       }
       const entry = data.demo ? data.demo[index] : entries.get(name);
-      const key = name + (data.demo ? ":demo:" + index : ":" + data.snapshot.generatedAt);
+      const key = period + ":" + name + (data.demo ? ":demo:" + index : ":" + data.snapshot.generatedAt);
       if (entry) {
-        insert(row, key, () => panel(entry, key));
+        insert(row, key, () => panel(entry, key, data));
       } else if (data.demo) {
         row.querySelector(selector)?.remove();
       } else {

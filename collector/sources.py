@@ -1,12 +1,14 @@
 import json
 import re
+from os import getenv
 from datetime import datetime, time, timedelta, timezone
 from html.parser import HTMLParser
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 
-TRENDING_URL = "https://github.com/trending?since=daily"
+TRENDING_URL = "https://github.com/trending"
+SNAPSHOT_FILES = {"daily": "latest.json", "weekly": "weekly.json", "monthly": "monthly.json"}
 GITHUB_API = "https://api.github.com"
 HN_SEARCH = "https://hn.algolia.com/api/v1/search"
 REPOSITORY_PATH = re.compile(r"/([a-z0-9-]+/[a-z0-9_.-]+)/?", re.IGNORECASE | re.ASCII)
@@ -112,6 +114,8 @@ def dated_events(items, repo, peak, source):
 class Sources:
     def __init__(self):
         self.github_limited = False
+        self.github_token = getenv("GITHUB_TOKEN")
+        self.github_responses = {}
 
     def get(self, url, *, github=False):
         headers = {"User-Agent": "github-trending-context/0.1"}
@@ -122,8 +126,11 @@ class Sources:
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
             })
+        request = Request(url, headers=headers)
+        if github and self.github_token:
+            request.add_unredirected_header("Authorization", f"Bearer {self.github_token}")
         try:
-            with urlopen(Request(url, headers=headers), timeout=15) as response:
+            with urlopen(request, timeout=15) as response:
                 return response.read().decode("utf-8")
         except HTTPError as error:
             if github and (
@@ -138,16 +145,22 @@ class Sources:
             raise SourceError(type(error).__name__) from error
 
     def get_json(self, url, expected_type, *, github=False):
+        if github and url in self.github_responses:
+            return self.github_responses[url]
         try:
             data = json.loads(self.get(url, github=github))
         except ValueError as error:
             raise SourceError("Invalid JSON") from error
         if not isinstance(data, expected_type):
             raise SourceError("Unexpected JSON shape")
+        if github:
+            self.github_responses[url] = data
         return data
 
-    def trending(self):
-        return parse_trending(self.get(TRENDING_URL))
+    def trending(self, period="daily"):
+        if period not in SNAPSHOT_FILES:
+            raise ValueError(f"Unsupported Trending period: {period}")
+        return parse_trending(self.get(f"{TRENDING_URL}?since={period}"))
 
     def repository(self, repo):
         return self.get_json(f"{GITHUB_API}/repos/{repo}", dict, github=True)

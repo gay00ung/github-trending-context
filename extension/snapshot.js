@@ -50,8 +50,9 @@
     return validSource(sources?.hn, "hn") && validSource(sources?.releases, "releases");
   }
 
-  function validSnapshot(value) {
+  function validSnapshot(value, period = "daily") {
     return value?.schemaVersion === 1
+      && (value.period === undefined ? "daily" : value.period) === period
       && typeof value.generatedAt === "string" && Number.isFinite(Date.parse(value.generatedAt))
       && typeof value.trendingFetchedAt === "string" && Number.isFinite(Date.parse(value.trendingFetchedAt))
       && Date.parse(value.trendingFetchedAt) <= Date.parse(value.generatedAt)
@@ -61,19 +62,19 @@
       && new Set(value.repos.map(entry => repositoryName("/" + entry.fullName))).size === value.repos.length;
   }
 
-  function createSnapshotLoader({ readCache, saveCache, fetchSnapshot, now = Date.now }) {
+  function createSnapshotLoader({ readCache, saveCache, fetchSnapshot, period = "daily", now = Date.now }) {
     let pending;
 
     async function load() {
       const cached = await readCache().catch(() => null);
-      const hasCache = validSnapshot(cached?.snapshot);
+      const hasCache = validSnapshot(cached?.snapshot, period);
       if (hasCache && count(cached.fetchedAt) && now() - cached.fetchedAt < hour) {
         return { snapshot: cached.snapshot };
       }
 
       try {
         const snapshot = await fetchSnapshot();
-        if (!validSnapshot(snapshot)) throw new Error("Unexpected snapshot data");
+        if (!validSnapshot(snapshot, period)) throw new Error("Unexpected snapshot data");
         await saveCache({ snapshot, fetchedAt: now() }).catch(() => {});
         return { snapshot };
       } catch {

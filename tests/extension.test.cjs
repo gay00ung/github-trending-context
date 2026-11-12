@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 require("../extension/context.js");
 require("../extension/snapshot.js");
 
-const { isDailyTrending, indexRepositories, validSnapshot, createSnapshotLoader, isStale } = globalThis.TrendingContext;
+const { trendingPeriod, indexRepositories, validSnapshot, createSnapshotLoader, isStale } = globalThis.TrendingContext;
 const now = Date.parse("2026-11-12T03:00:00Z");
 const payload = {
   schemaVersion: 1,
@@ -21,14 +21,34 @@ const payload = {
   }],
 };
 
-test("only the daily all-language Trending page is in scope", () => {
+test("each all-language Trending range resolves to its own period", () => {
+  const url = path => new URL("https://github.com" + path);
   for (const path of ["/trending", "/trending?since=daily", "/trending?spoken_language_code="]) {
-    assert.equal(isDailyTrending(new URL("https://github.com" + path)), true);
+    assert.equal(trendingPeriod(url(path)), "daily");
   }
-  for (const path of ["/trending?since=weekly", "/trending?since=monthly", "/trending/rust",
+  assert.equal(trendingPeriod(url("/trending?since=weekly")), "weekly");
+  assert.equal(trendingPeriod(url("/trending?since=monthly")), "monthly");
+  for (const path of ["/trending?since=unknown", "/trending/rust",
     "/trending?spoken_language_code=en", "/owner/repo", "/trending-tools"]) {
-    assert.equal(isDailyTrending(new URL("https://github.com" + path)), false);
+    assert.equal(trendingPeriod(url(path)), null);
   }
+});
+
+test("a period loader ignores the other periods' snapshots", async () => {
+  const weekly = { ...payload, period: "weekly" };
+  const monthly = { ...payload, period: "monthly" };
+  assert.equal(validSnapshot(weekly, "weekly"), true);
+  assert.equal(validSnapshot(monthly, "monthly"), true);
+  assert.equal(validSnapshot(weekly, "monthly"), false);
+  assert.equal(validSnapshot(payload, "weekly"), false);
+  const load = createSnapshotLoader({
+    period: "monthly",
+    readCache: async () => ({ snapshot: weekly, fetchedAt: now }),
+    saveCache: async () => assert.fail("another period must not be cached"),
+    fetchSnapshot: async () => payload,
+    now: () => now,
+  });
+  assert.deepEqual(await load(), { unavailable: true });
 });
 
 test("repository matching is exact and case-insensitive", () => {

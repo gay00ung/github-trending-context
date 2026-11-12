@@ -4,16 +4,20 @@
     return match?.[1].toLowerCase() ?? null;
   }
 
-  function isDailyTrending(url) {
-    return url.origin === "https://github.com"
-      && /^\/trending\/?$/.test(url.pathname)
-      && ["", "daily"].includes(url.searchParams.get("since") ?? "")
-      && !url.searchParams.get("spoken_language_code");
+  const snapshotFiles = Object.freeze({
+    daily: "latest.json", weekly: "weekly.json", monthly: "monthly.json",
+  });
+
+  function trendingPeriod(url) {
+    if (url.origin !== "https://github.com" || !/^\/trending\/?$/.test(url.pathname)
+      || url.searchParams.get("spoken_language_code")) return null;
+    const period = url.searchParams.get("since") || "daily";
+    return Object.hasOwn(snapshotFiles, period) ? period : null;
   }
 
   function indexRepositories(entries) {
     return new Map(entries.map(entry => [repositoryName("/" + entry.fullName), entry]));
   }
 
-  globalThis.TrendingContext = { repositoryName, isDailyTrending, indexRepositories };
+  globalThis.TrendingContext = { repositoryName, snapshotFiles, trendingPeriod, indexRepositories };
 })();

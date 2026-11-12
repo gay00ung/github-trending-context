@@ -22,7 +22,7 @@ The demo uses fictional repository names and source links in the GitHub Trending
 
 ## What you see
 
-- A summary below each repository description in the daily, all-language top 10. GitHub controls the list and its order.
+- A summary below each repository description in the top 10 for Today, This week, or This month with all languages selected. GitHub controls the list and its order.
 - A 14-day star chart with the most recent comparable spike highlighted, plus links to matching Hacker News posts and releases.
 - A collection timestamp and separate states for missing history, unavailable sources, and snapshots that are over 36 hours old.
 
@@ -33,23 +33,23 @@ You need Chrome and Python 3.12 or later. The collector uses the Python standard
 ```sh
 git clone https://github.com/gay00ung/github-trending-context.git
 cd github-trending-context
-python3 -m collector
+python3 -m collector --period all
 python3 scripts/package_extension.py \
-  --snapshot build/site/latest.json \
+  --snapshot-dir build/site \
   --output build/trending-context-local
 ```
 
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Choose **Load unpacked** and select `build/trending-context-local`.
-3. Open [GitHub Trending](https://github.com/trending) with the period set to **Today** and the language filters cleared. Select a **Trending Context** summary to see its evidence.
+3. Open [GitHub Trending](https://github.com/trending) with the language filters cleared and choose **Today**, **This week**, or **This month**. Select a **Trending Context** summary to see its evidence.
 
-The local build reads the snapshot bundled with it. To refresh it, run the commands again with a fresh output directory and load that directory in Chrome. To explore the UI without fetching data, run `python3 scripts/package_extension.py --demo --output build/trending-context-demo` and load that build instead.
+The local build reads the snapshots bundled with it. To refresh it, run the commands again with a fresh output directory and load that directory in Chrome. To explore the UI without fetching data, run `python3 scripts/package_extension.py --demo --output build/trending-context-demo` and load that build instead. If GitHub rate limits collection across all three periods, set the collector's `GITHUB_TOKEN` environment variable and retry.
 
 ## What the data means
 
 | Signal | How it is collected |
 | --- | --- |
-| Trending position | Read in order from GitHub's public daily Trending page at collection time. |
+| Trending position | Read in order from GitHub's public Trending page for the selected period at collection time. |
 | Daily stars | GitHub's aggregate star history. The comparison ends two UTC calendar days before collection because the API does not guarantee UTC-aligned day boundaries. Missing days remain gaps. |
 | Spike | At least 100 stars on a day, and at least five times the median of the preceding seven calendar days with data. With a median of zero, the 100-star threshold applies. The panel uses the most recent day that meets the rule. |
 | Nearby public activity | Up to ten recent GitHub releases and the first twenty date-filtered Hacker News search results, checked within one calendar day on either side of the spike. A Hacker News result must link to the repository. |
@@ -60,7 +60,7 @@ The panel reports what was observed and when. A matching release or discussion c
 
 ## Hosted snapshots
 
-The source extension uses the project's GitHub Pages `latest.json` endpoint when Pages is enabled. The **Refresh snapshot** workflow collects the data daily and supports manual runs. A failed collection leaves the last successful deployment available. The extension requests the same JSON for everyone, caches the last valid copy locally, and keeps browsing activity on the device.
+The source extension reads the selected period's snapshot from the project's GitHub Pages site when Pages is enabled. The **Refresh snapshot** workflow collects all three periods daily and supports manual runs. A failed collection leaves the last successful deployment available. The extension requests the same JSON per period for everyone, caches the last valid copy locally, and keeps browsing activity on the device.
 
 For maintainers, enable **Settings → Pages → Source → GitHub Actions** in the public repository, then run **Refresh snapshot** from the Actions tab. The workflow publishes the feed and builds an unpacked extension artifact. The local install above works before Pages is enabled.
 

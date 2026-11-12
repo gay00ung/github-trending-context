@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from datetime import date, datetime, timezone
@@ -19,7 +20,7 @@ WEEKS = [
 
 
 class FakeSources:
-    def trending(self):
+    def trending(self, period="daily"):
         return ["Owner/Repo", "Owner/Other"]
 
     def repository(self, repo):
@@ -85,6 +86,24 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(first["sources"]["hn"]["status"], "found")
         self.assertEqual(second["rank"], 2)
         self.assertEqual(second["spike"]["status"], "unavailable")
+
+    def test_collect_all_writes_separately_ranked_and_labeled_snapshots(self):
+        with tempfile.TemporaryDirectory() as folder:
+            sources = FakeSources()
+            by_period = {
+                "daily": ["Owner/Repo"],
+                "weekly": ["Owner/Week", "Owner/Repo"],
+                "monthly": ["Owner/Month"],
+            }
+            with patch("collector.__main__.Sources", return_value=sources):
+                with patch.object(sources, "trending", side_effect=by_period.__getitem__) as fetch:
+                    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                        self.assertEqual(main(["--period", "all", "--output", folder]), 0)
+            self.assertEqual([call.args[0] for call in fetch.call_args_list], list(by_period))
+            for period, filename in (("daily", "latest.json"), ("weekly", "weekly.json"), ("monthly", "monthly.json")):
+                data = json.loads((Path(folder) / filename).read_text())
+                self.assertEqual(data["period"], period)
+                self.assertEqual([entry["fullName"] for entry in data["repos"]], by_period[period])
 
     def test_total_failure_keeps_last_snapshot(self):
         with tempfile.TemporaryDirectory() as folder:

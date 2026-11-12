@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from .analysis import analyze_stars
-from .sources import REPOSITORY_PATH, SourceError, Sources, dated_events, parse_timestamp
+from .sources import REPOSITORY_PATH, SNAPSHOT_FILES, SourceError, Sources, dated_events, parse_timestamp
 
 
 def utc_now():
@@ -26,8 +26,8 @@ def event_source(fetch, repo, peak, source):
     return {"status": "found" if events else "none_found", "items": events}
 
 
-def collect(sources, limit, clock=utc_now):
-    repos = sources.trending()[:limit]
+def collect(sources, limit, clock=utc_now, *, period="daily"):
+    repos = sources.trending(period)[:limit]
     fetched = clock()
     as_of = fetched.date() - timedelta(days=2)
     entries = []
@@ -68,6 +68,7 @@ def collect(sources, limit, clock=utc_now):
         raise SourceError("All star history requests failed")
     return {
         "schemaVersion": 1,
+        "period": period,
         "generatedAt": clock().isoformat(),
         "trendingFetchedAt": fetched.isoformat(),
         "analysisThrough": as_of.isoformat(),
@@ -92,15 +93,25 @@ def write_snapshot(path, data):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, choices=range(1, 11), default=10)
-    parser.add_argument("--output", type=Path, default=Path("build/site/latest.json"))
+    parser.add_argument("--period", choices=[*SNAPSHOT_FILES, "all"], default="daily")
+    parser.add_argument("--output", type=Path, help="Snapshot path, or a directory when using --period all")
     args = parser.parse_args(argv)
+    sources = Sources()
+    periods = list(SNAPSHOT_FILES) if args.period == "all" else [args.period]
+    base = Path("build/site")
     try:
-        data = collect(Sources(), args.limit)
-        write_snapshot(args.output, data)
+        snapshots = {period: collect(sources, args.limit, period=period) for period in periods}
+        for period, data in snapshots.items():
+            filename = SNAPSHOT_FILES[period]
+            if args.period == "all":
+                path = (args.output or base) / filename
+            else:
+                path = args.output or base / filename
+            write_snapshot(path, data)
+            print(f"Wrote {len(data['repos'])} {period} repositories to {path}")
     except (SourceError, OSError) as error:
-        print(f"Snapshot unchanged: {error}", file=sys.stderr)
+        print(f"Snapshot collection failed: {error}", file=sys.stderr)
         return 1
-    print(f"Wrote {len(data['repos'])} repositories to {args.output}")
     return 0
 
 

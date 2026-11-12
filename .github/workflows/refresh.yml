@@ -29,8 +29,10 @@ jobs:
           python-version: "3.12"
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - name: Collect the daily snapshot
-        run: python3 -m collector --output build/site/latest.json
+      - name: Collect all Trending periods
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -m collector --period all --output build/site
       - name: Package the hosted extension
         run: python3 scripts/package_extension.py --output build/extension-hosted
       - name: Upload the browser package
